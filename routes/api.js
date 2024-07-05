@@ -15,6 +15,10 @@ const sendOtp = require('../utils/sendOtp');
 router.use(express.json());
 const mongoURI = process.env.MONGO_URI;
 
+router.get('/', (req, res) => {
+    res.send('Hello JWL ;)');
+  });
+
 router.use(express.json());
 // upload = video upload + form data
 
