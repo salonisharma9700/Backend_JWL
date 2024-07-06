@@ -1,47 +1,35 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-
+const multer = require('multer');
 const path = require('path');
 require('dotenv').config(); 
-
 const uploadRoutes = require('./routes/api'); 
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const cors = require('cors');
+
+// Enable CORS for specific origins
 app.use(cors());
 
-// app.use(cors({
-//     // origin: ['http://localhost:3000', 'http://localhost:3001',
-//     //     'https://joy-with-learning-v2.vercel.app'],
-//     origin: 'https://joy-with-learning-v2.vercel.app',
-//     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-//     allowedHeaders: ['Content-Type', 'Authorization'],
-//     credentials: true,
-// }));
+// Set the limits for JSON and URL-encoded data
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-
-
-app.use(express.json());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// const mongoURI = process.env.MONGO_URI;
-// mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-//     .then(() => console.log('MongoDB connected'))
-//     .catch(err => console.log(err));
-
+// Configure MongoDB connection
 const mongoURI = process.env.MONGO_URI;
-mongoose.connect(mongoURI)
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.log('MongoDB connection error:', err));
 
+// Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Use the upload routes
 app.use('/api', uploadRoutes);
 
-
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+// const multer = require('multer');
+// const path = require('path');
+// const fs = require('fs');
 const FormData = require('../models/ResponseForm');
 const Form = require('../models/UploadVidForm');
 require('dotenv').config(); 
@@ -15,26 +15,22 @@ const sendOtp = require('../utils/sendOtp');
 router.use(express.json());
 const mongoURI = process.env.MONGO_URI;
 
-router.get('/', (req, res) => {
-    res.send('Hello JWL ;)');
-  });
-
 router.use(express.json());
 // upload = video upload + form data
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = 'uploads/';
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
-});
-const upload = multer({ storage });
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const uploadPath = 'uploads/';
+//         if (!fs.existsSync(uploadPath)) {
+//             fs.mkdirSync(uploadPath, { recursive: true });
+//         }
+//         cb(null, uploadPath);
+//     },
+//     filename: (req, file, cb) => {
+//         cb(null, Date.now() + path.extname(file.originalname));
+//     },
+// });
+// const upload = multer({ storage });
 // Example in-memory storage (replace with actual database storage in production)
 const otpStore = {};
 
@@ -46,8 +42,7 @@ router.post('/verify-otp', (req, res) => {
 
     // Simulated OTP verification logic
     if (otpStore[phoneNumber] && otpStore[phoneNumber] === otp) {
-        console.log('OTP verification successful');
-        // Clear OTP after successful verification
+        console.log('OTP verification successful'); 
         delete otpStore[phoneNumber];
         res.status(200).json({ success: true, message: 'OTP verified successfully.' });
     } else {
@@ -88,15 +83,16 @@ const generateOtp = () => {
 
 
 //route to uploaadvideo + form data  
-router.post('/media', upload.single('video'), async (req, res) => {
+// router.post('/media', upload.single('video'), async (req, res) => {
+    router.post('/media',  async (req, res) => {
     const formData = req.body;
-    const videoFile = req.file;
+    // const videoFile = req.file;
 
-    if (!videoFile) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
+    // if (!videoFile) {
+    //     return res.status(400).json({ error: 'No file uploaded' });
+    // }
 
-    const videoPath = `uploads/${videoFile.filename}`;
+    // const videoPath = `uploads/${videoFile.filename}`;
 
     const formDetails = new Form({
         childName: formData.childName,
@@ -109,8 +105,8 @@ router.post('/media', upload.single('video'), async (req, res) => {
         mothersContact: formData.mothersContact,
         mothersEmail: formData.mothersEmail,
         message: formData.message,
-        primaryContact: formData.primaryContact,
-        videoPath: videoPath
+        primaryContact: formData.primaryContact
+        // videoPath: videoPath
     });
 
     try {

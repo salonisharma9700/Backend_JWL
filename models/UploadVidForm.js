@@ -13,7 +13,7 @@ const formSchema = new Schema({
     mothersEmail: { type: String, required: true },
     message: { type: String },
     primaryContact: {type: String, required: true},
-    videoPath: { type: String, required: true }
+    // videoPath: { type: String, required: true }
 }, {
     timestamps: true 
 });
