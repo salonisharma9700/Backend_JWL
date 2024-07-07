@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-// const multer = require('multer');
+const multer = require('multer');
 // const path = require('path');
 // const fs = require('fs');
 const FormData = require('../models/ResponseForm');
-const Form = require('../models/UploadVidForm');
+const UploadVidForm = require('../models/UploadVidForm');
 require('dotenv').config(); 
 const AdminReviewKM = require('../models/Adminfeedback'); 
 const AdminVid = require('../models/AdminVid');
 // const emailjs = require('emailjs-com');
 const sendOtp = require('../utils/sendOtp');
+
+
 
 router.use(express.json());
 const mongoURI = process.env.MONGO_URI;
@@ -82,40 +84,40 @@ const generateOtp = () => {
 };
 
 
-//route to uploaadvideo + form data  
-// router.post('/media', upload.single('video'), async (req, res) => {
-    router.post('/media',  async (req, res) => {
-    const formData = req.body;
-    // const videoFile = req.file;
+// //route to uploaadvideo + form data  
+// // router.post('/media', upload.single('video'), async (req, res) => {
+//     router.post('/media',  async (req, res) => {
+//     const formData = req.body;
+//     // const videoFile = req.file;
 
-    // if (!videoFile) {
-    //     return res.status(400).json({ error: 'No file uploaded' });
-    // }
+//     // if (!videoFile) {
+//     //     return res.status(400).json({ error: 'No file uploaded' });
+//     // }
 
-    // const videoPath = `uploads/${videoFile.filename}`;
+//     // const videoPath = `uploads/${videoFile.filename}`;
 
-    const formDetails = new Form({
-        childName: formData.childName,
-        age: formData.age,
-        gender: formData.gender,
-        fathersName: formData.fathersName,
-        fathersContact: formData.fathersContact,
-        fathersEmail: formData.fathersEmail,
-        mothersName: formData.mothersName,
-        mothersContact: formData.mothersContact,
-        mothersEmail: formData.mothersEmail,
-        message: formData.message,
-        primaryContact: formData.primaryContact
-        // videoPath: videoPath
-    });
+//     const formDetails = new Form({
+//         childName: formData.childName,
+//         age: formData.age,
+//         gender: formData.gender,
+//         fathersName: formData.fathersName,
+//         fathersContact: formData.fathersContact,
+//         fathersEmail: formData.fathersEmail,
+//         mothersName: formData.mothersName,
+//         mothersContact: formData.mothersContact,
+//         mothersEmail: formData.mothersEmail,
+//         message: formData.message,
+//         primaryContact: formData.primaryContact
+//         // videoPath: videoPath
+//     });
 
-    try {
-        await formDetails.save();
-        res.status(200).json({ message: 'File uploaded and form data saved successfully' });
-    } catch (error) {
-        res.status(500).json({ error: 'Error saving form data' });
-    }
-});
+//     try {
+//         await formDetails.save();
+//         res.status(200).json({ message: 'File uploaded and form data saved successfully' });
+//     } catch (error) {
+//         res.status(500).json({ error: 'Error saving form data' });
+//     }
+// });
 
 //get uploadform  content in admin portal
 
@@ -185,32 +187,25 @@ router.get('/getFormData', async (req, res) => {
 
 //admin portal
 
-// Update knowmore status and feedback
+// Update status and feedback
 router.patch('/updateFormData/:id', async (req, res) => {
     const { status, feedback } = req.body;
     const { id } = req.params;
 
     try {
-        const form = await FormData.findById(id);
-        if (!form) {
+        const updatedForm = await FormData.findByIdAndUpdate(id, { status, feedback }, { new: true });
+
+        if (!updatedForm) {
             return res.status(404).json({ error: 'Form not found' });
         }
 
-        const adminReview = new AdminReviewKM({
-            formId: id,
-            childName: form.childName,
-            status,
-            feedback
-        });
-
-        await adminReview.save();
-
-        res.status(200).json({ message: 'Status and feedback updated successfully' });
+        res.status(200).json({ message: 'Status and feedback updated successfully', updatedForm });
     } catch (error) {
         console.error('Error updating form data:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
+
 
 //get feedback on admin portal for knowmore
 
@@ -235,6 +230,63 @@ router.get('/getFormDataWithFeedback', async (req, res) => {
 });
 
 
+//get feedback on admin portal for uploadvid
+
+
+// GET endpoint to fetch form data with sample feedback
+// router.get('/getuploadWithFeedback', async (req, res) => {
+//     try {
+//       const formData = await UploadVidForm.find(); // Fetch all form data from MongoDB using Mongoose
+  
+//       // Optionally fetch feedback or other related data and construct the response
+//       const formDataWithFeedback = formData.map(form => ({
+//         ...form.toObject(),
+//         status: 'Sample Status',
+//         feedback: 'Sample Feedback',
+//       }));
+  
+//       res.status(200).json(formDataWithFeedback); // Respond with JSON data
+//     } catch (error) {
+//       console.error('Error fetching form data with feedback:', error);
+//       res.status(500).json({ error: 'Error fetching form data with feedback' });
+//     }
+//   });
+  // Route to fetch all form data
+router.get('/adminmedia', async (req, res) => {
+    try {
+        const formData = await UploadVidForm.find(); // Fetch all form data from MongoDB
+
+        res.status(200).json(formData); // Respond with JSON data
+    } catch (error) {
+        console.error('Error fetching form data:', error);
+        res.status(500).json({ error: 'Error fetching form data' });
+    }
+});
+
+router.post('/api/saveAdminVidFeedback', async (req, res) => {
+    try {
+        const { formId, status, feedback } = req.body;
+
+        // Check if there's existing feedback for this formId
+        let adminVid = await AdminVid.findOne({ formId });
+
+        if (!adminVid) {
+            // If no existing feedback, create a new entry
+            adminVid = new AdminVid({ formId, status, feedback });
+        } else {
+            // If existing feedback, update the status and feedback
+            adminVid.status = status;
+            adminVid.feedback = feedback;
+        }
+
+        await adminVid.save();
+
+        res.status(201).json({ message: 'Status and feedback saved successfully', adminVid });
+    } catch (error) {
+        console.error('Error saving status and feedback:', error);
+        res.status(500).json({ error: 'Failed to save status and feedback' });
+    }
+});
 //admin feedback uploadvid
 
 router.get('/getAdminVidFeedback/:id', async (req, res) => {
@@ -310,44 +362,65 @@ router.patch('/adminvidfeedback/:id', async (req, res) => {
 
 
 
-// POST route for submitting contact form
-// router.post('/contactform', async (req, res) => {
-//     const { name, email, message } = req.body;
 
-//     try {
-//         // Validate required fields
-//         if (!name || !email || !message) {
-//             return res.status(400).json({ error: 'Missing required fields' });
-//         }
 
-//         // Save form data to MongoDB
-//         const contactForm = new ContactForm({
-//             name,
-//             email,
-//             message,
-//         });
-//         await contactForm.save();
+//cloudinar
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+    cloud_name: 'dahddkuei',
+    api_key: '739925546548181',
+    api_secret: '3Kah7aCCXOP7ThQHMeUxuA3lYcg'
+  });
+//   const storage = multer.diskStorage({});
 
-//         // Optionally send thank-you email
-//         const emailParams = {
-//             from_name: 'JoyWithLearning.com',  // Replace with your name or company name
-//             from_email: 'joywithlearning.tad@gmail.com',  // Replace with your email address
-//             to_email: email,  // Use sender's email address for thank-you email
-//             message: 'Thank you we recieved your message!',  // Customize your thank-you message here
-//         };
-//         const serviceId = 'service_v1786bs'; 
-//         const templateId = 'template_cavtrlg';
-//         const userId = '3NQW95XFCjHuG4uZl';
 
-//         const response = await emailjs.send(serviceId, templateId, emailParams, userId);
-//         console.log('Thank-you email sent successfully:', response);
+const upload = multer({
+    storage: multer.memoryStorage(), // Use memory storage
+    limits: {
+      fileSize: 50 * 1024 * 1024 // 50MB file size limit
+    }
+  });
 
-//         res.status(200).json({ message: 'Form data saved successfully' });
-//     } catch (error) {
-//         console.error('Error saving form data:', error);
-//         res.status(500).json({ error: 'Server error' });
-//     }
-// });
-
+router.post('/media', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+  
+      // Upload file to Cloudinary directly from memory buffer
+      const cloudinaryResult = await cloudinary.uploader.upload_stream({ resource_type: "video" }, 
+        async (error, result) => {
+          if (error) {
+            console.error('Error uploading to Cloudinary:', error);
+            return res.status(500).json({ message: 'Failed to upload video' });
+          }
+  
+          // Save form data including Cloudinary URL
+          const formData = {
+            childName: req.body.childName,
+            age: req.body.age,
+            gender: req.body.gender,
+            fathersName: req.body.fathersName,
+            fathersContact: req.body.fathersContact,
+            fathersEmail: req.body.fathersEmail,
+            mothersName: req.body.mothersName,
+            mothersContact: req.body.mothersContact,
+            mothersEmail: req.body.mothersEmail,
+            message: req.body.message,
+            primaryContact: req.body.primaryContact,
+            videoPath: result.secure_url // Store Cloudinary URL in the database
+          };
+  
+          const newFormData = new UploadVidForm(formData);
+          await newFormData.save();
+  
+          res.status(201).json({ message: 'Video uploaded successfully', formData: newFormData });
+        }).end(req.file.buffer);
+  
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      res.status(500).json({ message: 'Failed to upload video' });
+    }
+  });
 
 module.exports = router;
